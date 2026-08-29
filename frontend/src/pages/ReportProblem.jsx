@@ -7,18 +7,45 @@ function ReportProblem() {
   const [category, setCategory] = useState("")
   const [district, setDistrict] = useState("")
   const [location, setLocation] = useState("")
+  const [message, setMessage] = useState("")
+  const [file, setFile] = useState(null)
 
-  function handleSubmit(event) {
-    event.preventDefault()
+  async function handleSubmit(event) {
+  event.preventDefault()
 
-    console.log({
-      title,
-      description,
-      category,
-      district,
-      location
-    })
+  const formData = new FormData()
+
+  formData.append("title", title)
+  formData.append("description", description)
+  formData.append("category", category)
+  formData.append("district", district)
+  formData.append("location", location)
+
+  if (file) {
+    formData.append("file", file)
   }
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/problems", {
+      method: "POST",
+      body: formData
+    })
+
+    const data = await response.json()
+
+    if (response.ok) {
+      setMessage(
+        `Problem submitted successfully! ID: ${data.problem_id}`
+      )
+    } else {
+      setMessage("Failed to submit problem.")
+    }
+
+  } catch (error) {
+    console.error(error)
+    setMessage("Could not connect to the server.")
+  }
+}
 
   return (
     <div>
@@ -101,12 +128,18 @@ function ReportProblem() {
 
           <label>
             Photo
-            <input type="file" accept="image/*" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => setFile(event.target.files[0])}
+            />
           </label>
 
           <button type="submit">
             Submit Problem
           </button>
+
+          {message && <p>{message}</p>}
 
         </form>
       </main>
