@@ -8,6 +8,8 @@ function ProblemDetails() {
   const [problem, setProblem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [newStatus, setNewStatus] = useState("")
+  const [statusMessage, setStatusMessage] = useState("")
 
   useEffect(() => {
     fetch(`http://127.0.0.1:8000/problems/${id}`)
@@ -28,6 +30,34 @@ function ProblemDetails() {
         setLoading(false)
       })
   }, [id])
+
+  const updateStatus = () => {
+  fetch(
+    `http://127.0.0.1:8000/problems/${id}/status?status=${encodeURIComponent(newStatus)}`,
+    {
+      method: "PUT",
+    }
+  )
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Could not update status")
+      }
+
+      return response.json()
+    })
+    .then((data) => {
+      setProblem({
+        ...problem,
+        status: data.status,
+      })
+
+      setStatusMessage("Status updated successfully.")
+    })
+    .catch((error) => {
+      console.error(error)
+      setStatusMessage("Could not update status.")
+    })
+  }
 
   if (loading) {
     return <p>Loading...</p>
@@ -69,9 +99,35 @@ function ProblemDetails() {
             <strong>Location:</strong> {problem.location}
           </p>
 
-          <p>
-            <strong>Status:</strong> {problem.status}
-          </p>
+          <div className="status-section">
+            <p>
+              <strong>Current Status:</strong> {problem.status}
+            </p>
+
+            <select
+              value={newStatus}
+              onChange={(event) => setNewStatus(event.target.value)}
+            >
+              <option value="">Select new status</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Accepted">Accepted</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+
+            <button
+              onClick={updateStatus}
+              disabled={!newStatus}
+            >
+              Update Status
+            </button>
+
+            {statusMessage && (
+              <p>{statusMessage}</p>
+            )}
+
+          </div>
 
           {problem.photo_path && (
             <div>

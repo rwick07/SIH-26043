@@ -4,6 +4,8 @@ import Home from "./pages/Home"
 import ReportProblem from "./pages/ReportProblem"
 import Problems from "./pages/Problems"
 import ProblemDetails from "./pages/ProblemDetails"
+import Login from "./pages/Login"
+import Dashboard from "./pages/Dashboard"
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
         <Route path="/report" element={<ReportProblem />} />
         <Route path="/problems" element={<Problems />} />
         <Route path="/problems/:id" element={<ProblemDetails />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   )

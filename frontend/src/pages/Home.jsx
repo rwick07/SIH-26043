@@ -1,26 +1,66 @@
-import { useNavigate } from "react-router-dom"
-import Navbar from "../components/Navbar"
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 function Home() {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
+
   return (
     <div>
       <Navbar />
 
-      <main>
-        <h1>Turn Community Problems Into Real Solutions</h1>
+      <main className="home-page">
 
-        <p>
-          Connect societal challenges with universities,
-          students, researchers and industry partners.
-        </p>
+        <section className="hero-section">
+          <h1>Turn Community Problems Into Real Solutions</h1>
 
-        <button onClick={() => navigate("/report")}>
-          Report a Problem
-        </button>
+          <p>
+            Connect societal challenges with universities, students,
+            researchers and industry partners.
+          </p>
+
+          <div className="hero-buttons">
+            <button onClick={() => navigate("/report")}>
+              Report a Problem
+            </button>
+
+            <button onClick={() => navigate("/problems")}>
+              Explore Problems
+            </button>
+          </div>
+        </section>
+
+
+        <section className="features-section">
+
+          <div className="feature-card">
+            <h2>Report</h2>
+            <p>
+              Citizens can report real-world problems with descriptions,
+              locations and photos.
+            </p>
+          </div>
+
+          <div className="feature-card">
+            <h2>Collaborate</h2>
+            <p>
+              Universities, students and industry partners can work
+              together to solve challenges.
+            </p>
+          </div>
+
+          <div className="feature-card">
+            <h2>Build Solutions</h2>
+            <p>
+              Turn identified problems into meaningful projects and
+              practical solutions.
+            </p>
+          </div>
+
+        </section>
+
       </main>
     </div>
-  )
+  );
 }
 
-export default Home
+export default Home;
