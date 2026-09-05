@@ -1,25 +1,28 @@
 import { useState } from "react"
-import { useNavigate,Link } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import Navbar from "../components/Navbar"
 
-function Login() {
+function Register() {
   const navigate = useNavigate()
 
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
 
-  const handleLogin = async (event) => {
+  const handleRegister = async (event) => {
     event.preventDefault()
 
     const formData = new FormData()
 
+    formData.append("name", name)
     formData.append("email", email)
     formData.append("password", password)
+    formData.append("role", "Citizen")
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/login",
+        "http://127.0.0.1:8000/register",
         {
           method: "POST",
           body: formData
@@ -29,15 +32,14 @@ function Login() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed")
+        throw new Error(data.detail || "Registration failed")
       }
 
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(data.user))
+      setMessage("Registration successful!")
 
-      setMessage("Login successful!")
-
-      navigate("/")
+      setTimeout(() => {
+        navigate("/login")
+      }, 1000)
 
     } catch (error) {
       console.error(error)
@@ -49,11 +51,21 @@ function Login() {
     <div>
       <Navbar />
 
-      <main className="login-page">
+      <main className="register-page">
 
-        <h1>Login</h1>
+        <h1>Create an Account</h1>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleRegister}>
+
+          <label>
+            Name
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+            />
+          </label>
 
           <label>
             Email
@@ -76,19 +88,17 @@ function Login() {
           </label>
 
           <button type="submit">
-            Login
+            Register
           </button>
 
         </form>
 
-        {message && (
-          <p>{message}</p>
-        )}
+        {message && <p>{message}</p>}
 
         <p>
-          Don't have an account?{" "}
-          <Link to="/register">
-            Register
+          Already have an account?{" "}
+          <Link to="/login">
+            Login
           </Link>
         </p>
 
@@ -97,4 +107,4 @@ function Login() {
   )
 }
 
-export default Login    
+export default Register

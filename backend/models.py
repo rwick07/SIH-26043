@@ -8,13 +8,9 @@ class Problem(Base):
     __tablename__ = "problems"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer,ForeignKey("users.id"),nullable=True)
+    university_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    user_id = Column(
-    Integer,
-    ForeignKey("users.id"),
-    nullable=True
-    )
-    
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
 
@@ -47,6 +43,37 @@ class User(Base):
     password = Column(String(255), nullable=False)
 
     role = Column(String(50), nullable=False, default="Citizen")
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    problem_id = Column(
+        Integer,
+        ForeignKey("problems.id"),
+        nullable=False
+    )
+
+    university_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    title = Column(String(200), nullable=False)
+
+    description = Column(Text, nullable=False)
+
+    status = Column(
+        String(50),
+        default="Proposed"
+    )
 
     created_at = Column(
         DateTime(timezone=True),

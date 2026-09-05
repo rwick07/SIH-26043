@@ -7,7 +7,7 @@ from pwdlib import PasswordHash
 import jwt
 
 from database import engine, SessionLocal
-from models import Problem as ProblemModel, User
+from models import Problem as ProblemModel, User, Project
 
 app = FastAPI()
 
@@ -74,6 +74,28 @@ def get_current_user(
             status_code=401,
             detail="Invalid authentication token"
         )
+
+def get_current_government(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Government":
+        raise HTTPException(
+            status_code=403,
+            detail="Government access required"
+        )
+
+    return current_user
+
+def get_current_university(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "University":
+        raise HTTPException(
+            status_code=403,
+            detail="University access required"
+        )
+
+    return current_user
 
 @app.get("/")
 def home():
@@ -284,6 +306,156 @@ def get_my_problems(
     finally:
         db.close()
 
+@app.get("/all-problems")
+def get_all_problems(
+    current_user: User = Depends(get_current_government)
+):
+    db = SessionLocal()
+
+    try:
+        problems = db.query(ProblemModel).all()
+
+        return problems
+
+    finally:
+        db.close()
+
+@app.get("/university-problems")
+def get_university_problems(
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        problems = db.query(ProblemModel).filter(
+            ProblemModel.status == "Accepted"
+        ).all()
+
+        return problems
+
+    finally:
+        db.close()
+
+@app.put("/problems/{problem_id}/take-up")
+def take_up_problem(
+    problem_id: int,
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        problem = db.query(ProblemModel).filter(
+            ProblemModel.id == problem_id
+        ).first()
+
+        if not problem:
+            raise HTTPException(
+                status_code=404,
+                detail="Problem not found"
+            )
+
+        if problem.status != "Accepted":
+            raise HTTPException(
+                status_code=400,
+                detail="Only accepted problems can be taken up"
+            )
+
+        if problem.university_id is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="Problem has already been taken up"
+            )
+
+        problem.university_id = current_user.id
+
+        db.commit()
+        db.refresh(problem)
+
+        return {
+            "message": "Problem taken up successfully",
+            "problem_id": problem.id,
+            "university_id": current_user.id
+        }
+
+    finally:
+        db.close()  
+
+@app.post("/projects")
+def create_project(
+    problem_id: int,
+    title: str,
+    description: str,
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        problem = db.query(ProblemModel).filter(
+            ProblemModel.id == problem_id
+        ).first()
+
+        if not problem:
+            raise HTTPException(
+                status_code=404,
+                detail="Problem not found"
+            )
+
+        if problem.university_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only create a project for a problem taken up by your university"
+            )
+
+        existing_project = db.query(Project).filter(
+            Project.problem_id == problem_id
+        ).first()
+
+        if existing_project:
+            raise HTTPException(
+                status_code=400,
+                detail="A project already exists for this problem"
+            )
+
+        new_project = Project(
+            problem_id=problem_id,
+            university_id=current_user.id,
+            title=title,
+            description=description
+        )
+
+        db.add(new_project)
+        db.commit()
+        db.refresh(new_project)
+
+        return {
+            "message": "Project created successfully",
+            "project_id": new_project.id,
+            "problem_id": new_project.problem_id,
+            "university_id": new_project.university_id,
+            "title": new_project.title,
+            "description": new_project.description,
+            "status": new_project.status
+        }
+
+    finally:
+        db.close()
+
+@app.get("/my-projects")
+def get_my_projects(
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        projects = db.query(Project).filter(
+            Project.university_id == current_user.id
+        ).all()
+
+        return projects
+
+    finally:
+        db.close()
+
 @app.post("/problems/{problem_id}/analyze")
 def analyze_problem(problem_id: int):
 
@@ -329,7 +501,8 @@ def analyze_problem(problem_id: int):
 @app.put("/problems/{problem_id}/status")
 def update_problem_status(
     problem_id: int,
-    status: str
+    status: str,
+    current_user: User = Depends(get_current_government)
 ):
     db = SessionLocal()
 

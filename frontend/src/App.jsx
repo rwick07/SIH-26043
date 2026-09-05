@@ -6,6 +6,7 @@ import Problems from "./pages/Problems"
 import ProblemDetails from "./pages/ProblemDetails"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
+import Register from "./pages/Register"
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/problems/:id" element={<ProblemDetails />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   )
