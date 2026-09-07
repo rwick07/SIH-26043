@@ -53,27 +53,14 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-
-    problem_id = Column(
-        Integer,
-        ForeignKey("problems.id"),
-        nullable=False
-    )
-
-    university_id = Column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=False
-    )
+    problem_id = Column(Integer, ForeignKey("problems.id"), nullable=False)
+    university_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     title = Column(String(200), nullable=False)
-
     description = Column(Text, nullable=False)
 
-    status = Column(
-        String(50),
-        default="Proposed"
-    )
+    status = Column(String(50), default="Proposed")
+    progress = Column(Integer, default=0)
 
     created_at = Column(
         DateTime(timezone=True),

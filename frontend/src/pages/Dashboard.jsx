@@ -14,6 +14,9 @@ function Dashboard() {
     const [projectTitle, setProjectTitle] = useState("")
     const [projectDescription, setProjectDescription] = useState("")
     const [projects, setProjects] = useState([])
+    const [progressProject, setProgressProject] = useState(null)
+    const [newProjectProgress, setNewProjectProgress] = useState("")
+    const [newProjectStatus, setNewProjectStatus] = useState("")
 
     const takeUpProblem = async (problemId) => {
         try {
@@ -80,6 +83,48 @@ function Dashboard() {
         }
         }
 
+    const updateProjectProgress = async (projectId) => {
+        try {
+            const response = await fetch(
+                `http://127.0.0.1:8000/projects/${projectId}/progress?progress=${newProjectProgress}&status=${encodeURIComponent(newProjectStatus)}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "Could not update project progress"
+                )
+            }
+
+            setProjects((currentProjects) =>
+                currentProjects.map((project) =>
+                    project.id === projectId
+                        ? {
+                            ...project,
+                            progress: data.progress,
+                            status: data.status
+                        }
+                        : project
+                )
+            )
+
+            setProgressProject(null)
+            setNewProjectProgress("")
+            setNewProjectStatus("")
+
+        } catch (error) {
+            console.error(error)
+            alert(error.message)
+        }
+    }
+
     useEffect(() => {
     const storedUser = localStorage.getItem("user")
     const token = localStorage.getItem("token")
@@ -119,6 +164,27 @@ function Dashboard() {
         console.error(error)
         setLoadingProblems(false)
         })
+
+    if (currentUser.role === "Government") {
+        fetch("http://127.0.0.1:8000/government-projects", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Could not load projects")
+                }
+
+                return response.json()
+            })
+            .then((data) => {
+                setProjects(data)
+            })
+            .catch((error) => {
+                console.error(error)
+            })
+    }
 
     if (currentUser.role === "University") {
         fetch("http://127.0.0.1:8000/my-projects", {
@@ -390,6 +456,173 @@ function Dashboard() {
             </h2>
             {problemList}
         </div>
+
+        {user.role === "Government" && (
+            <div className="dashboard-card">
+                <h2>Project Tracking</h2>
+
+                {projects.length === 0 ? (
+                    <p>No projects have been created yet.</p>
+                ) : (
+                    <div className="my-problems-list">
+                        {projects.map((project) => (
+                            <div
+                                className="my-problem-card"
+                                key={project.id}
+                            >
+                                <h3>{project.title}</h3>
+
+                                <p>
+                                    <strong>Problem:</strong>{" "}
+                                    {project.problem_title}
+                                </p>
+
+                                <p>
+                                    <strong>University:</strong>{" "}
+                                    {project.university_name}
+                                </p>
+
+                                <p>
+                                    <strong>Status:</strong>{" "}
+                                    {project.status}
+                                </p>
+
+                                <p>
+                                    <strong>Progress:</strong>{" "}
+                                    {project.progress}%
+                                </p>
+
+                                <div className="progress-bar-container">
+                                    <div
+                                        className="progress-bar"
+                                        style={{
+                                            width: `${project.progress}%`
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {user.role === "University" && (
+            <div className="dashboard-card">
+                <h2>My Projects</h2>
+
+                {projects.length === 0 ? (
+                    <p>You have not created any projects yet.</p>
+                ) : (
+                    <div className="my-problems-list">
+                        {projects.map((project) => (
+                            <div
+                                className="my-problem-card"
+                                key={project.id}
+                            >
+                                <h3>{project.title}</h3>
+
+                                <p>
+                                    <strong>Description:</strong>{" "}
+                                    {project.description}
+                                </p>
+
+                                <p>
+                                    <strong>Status:</strong>{" "}
+                                    {project.status}
+                                </p>
+
+                                <p>
+                                    <strong>Progress:</strong>{" "}
+                                    {project.progress}%
+                                </p>
+
+                                <div className="progress-bar-container">
+                                    <div
+                                        className="progress-bar"
+                                        style={{
+                                            width: `${project.progress}%`
+                                        }}
+                                    >
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        setProgressProject(project.id)
+                                        setNewProjectProgress(project.progress.toString())
+                                        setNewProjectStatus(project.status)
+                                    }}
+                                >
+                                    Update Progress
+                                </button>
+
+                                {progressProject === project.id && (
+                                    <div className="project-form">
+
+                                        <h4>Update Project Progress</h4>
+
+                                        <label>
+                                            Status
+                                        </label>
+
+                                        <select
+                                            value={newProjectStatus}
+                                            onChange={(event) =>
+                                                setNewProjectStatus(event.target.value)
+                                            }
+                                        >
+                                            <option value="Proposed">Proposed</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+
+                                        <label>
+                                            Progress (%)
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={newProjectProgress}
+                                            onChange={(event) =>
+                                                setNewProjectProgress(event.target.value)
+                                            }
+                                        />
+
+                                        <button
+                                            onClick={() =>
+                                                updateProjectProgress(project.id)
+                                            }
+                                            disabled={
+                                                newProjectProgress === "" ||
+                                                Number(newProjectProgress) < 0 ||
+                                                Number(newProjectProgress) > 100
+                                            }
+                                        >
+                                            Save Progress
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setProgressProject(null)
+                                                setNewProjectProgress("")
+                                                setNewProjectStatus("")
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+
+                                    </div>
+                                )}
+
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
 
         </main>
     </div>

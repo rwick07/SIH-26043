@@ -456,6 +456,97 @@ def get_my_projects(
     finally:
         db.close()
 
+@app.get("/government-projects")
+def get_government_projects(
+    current_user: User = Depends(get_current_government)
+):
+    db = SessionLocal()
+
+    try:
+        projects = db.query(Project).all()
+
+        result = []
+
+        for project in projects:
+            problem = db.query(ProblemModel).filter(
+                ProblemModel.id == project.problem_id
+            ).first()
+
+            university = db.query(User).filter(
+                User.id == project.university_id
+            ).first()
+
+            result.append({
+                "id": project.id,
+                "title": project.title,
+                "description": project.description,
+                "status": project.status,
+                "progress": project.progress,
+                "problem_id": project.problem_id,
+                "problem_title": problem.title if problem else "Unknown Problem",
+                "university_id": project.university_id,
+                "university_name": university.name if university else "Unknown University"
+            })
+
+        return result
+
+    finally:
+        db.close()
+
+@app.put("/projects/{project_id}/progress")
+def update_project_progress(
+    project_id: int,
+    progress: int,
+    status: str,
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).filter(
+            Project.id == project_id
+        ).first()
+
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found"
+            )
+
+        if project.university_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only update your own university's projects"
+            )
+
+        if progress < 0 or progress > 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Progress must be between 0 and 100"
+            )
+
+        if status not in ["Proposed", "In Progress", "Completed"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid project status"
+            )
+
+        project.progress = progress
+        project.status = status
+
+        db.commit()
+        db.refresh(project)
+
+        return {
+            "message": "Project progress updated successfully",
+            "project_id": project.id,
+            "status": project.status,
+            "progress": project.progress
+        }
+
+    finally:
+        db.close()
+
 @app.post("/problems/{problem_id}/analyze")
 def analyze_problem(problem_id: int):
 

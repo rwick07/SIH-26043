@@ -462,3 +462,21 @@ form button {
     flex-direction: column;
   }
 }
+
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+    margin-bottom: 12px;
+
+}
+
+.progress-bar {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 6px;
+    transition: width 0.3s ease;
+} 
