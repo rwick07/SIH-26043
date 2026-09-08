@@ -1,3 +1,4 @@
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 
@@ -22,6 +23,9 @@ class Problem(Base):
     ai_category = Column(String(100), nullable=True)
     ai_priority = Column(String(50), nullable=True)
     ai_summary = Column(Text, nullable=True)
+    ai_solution = Column(Text, nullable=True)
+    ai_pattern_note = Column(Text, nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     ai_keywords = Column(Text, nullable=True)
 
     status = Column(String(50), default="Submitted")

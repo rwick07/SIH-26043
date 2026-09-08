@@ -8,6 +8,7 @@ import jwt
 
 from database import engine, SessionLocal
 from models import Problem as ProblemModel, User, Project
+from ai_service import classify_problem, get_embedding, generate_solution
 
 app = FastAPI()
 
@@ -458,7 +459,6 @@ def get_my_projects(
 
 @app.post("/problems/{problem_id}/analyze")
 def analyze_problem(problem_id: int):
-
     db = SessionLocal()
 
     try:
@@ -472,16 +472,40 @@ def analyze_problem(problem_id: int):
                 detail="Problem not found"
             )
 
-        # Temporary mock AI result
-        ai_category = problem.category
-        ai_priority = "Medium"
-        ai_summary = problem.description[:150]
-        ai_keywords = "community, problem, local"
+        result = classify_problem(problem.title, problem.description)
+        if result is None:
+            raise HTTPException(status_code=502, detail="AI analysis failed, try again")
 
-        problem.ai_category = ai_category
-        problem.ai_priority = ai_priority
-        problem.ai_summary = ai_summary
-        problem.ai_keywords = ai_keywords
+        problem.ai_category = result["category"]
+        problem.ai_priority = result["priority"]
+        problem.ai_summary = result["summary"]
+        problem.ai_keywords = ", ".join(result["keywords"])
+
+        embedding = get_embedding(f"{problem.title} {problem.description}")
+        similar = []
+        if embedding:
+            problem.embedding = embedding
+            rows = (
+                db.query(ProblemModel)
+                .filter(ProblemModel.ai_category == result["category"])
+                .filter(ProblemModel.id != problem.id)
+                .filter(ProblemModel.embedding.isnot(None))
+                .order_by(ProblemModel.embedding.cosine_distance(embedding))
+                .limit(5)
+                .all()
+            )
+            similar = [
+                {"title": r.title, "description": r.description, "status": r.status}
+                for r in rows
+            ]
+
+        solution = generate_solution(
+            {"title": problem.title, "description": problem.description, "category": result["category"]},
+            similar,
+        )
+        if solution:
+            problem.ai_solution = solution["solution"]
+            problem.ai_pattern_note = solution["pattern_note"]
 
         db.commit()
         db.refresh(problem)
@@ -492,7 +516,9 @@ def analyze_problem(problem_id: int):
             "ai_category": problem.ai_category,
             "ai_priority": problem.ai_priority,
             "ai_summary": problem.ai_summary,
-            "ai_keywords": problem.ai_keywords
+            "ai_keywords": problem.ai_keywords,
+            "ai_solution": problem.ai_solution,
+            "ai_pattern_note": problem.ai_pattern_note,
         }
 
     finally:
