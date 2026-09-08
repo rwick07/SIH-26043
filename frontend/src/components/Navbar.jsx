@@ -1,7 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 function Navbar() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(
   JSON.parse(localStorage.getItem("user"))
   );
@@ -9,8 +11,8 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     setUser(null);
+    navigate("/");
   };
 
   return (
@@ -28,7 +30,9 @@ function Navbar() {
         <Link to="/">Home</Link>
         <Link to="/problems">Problems</Link>
 
-        <Link to="/report">Report Problem</Link>
+        {user?.role === "Citizen" && (
+          <Link to="/report">Report Problem</Link>
+        )}
 
         {user ? (
           <>

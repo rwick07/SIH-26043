@@ -10,6 +10,12 @@ function Problems() {
   const [category, setCategory] = useState("")
   const [district, setDistrict] = useState("")
 
+  const formatOption = (value) => {
+  return value
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
   useEffect(() => {
     fetch("http://127.0.0.1:8000/problems")
       .then((response) => response.json())
@@ -24,11 +30,15 @@ function Problems() {
   }, [])
 
   const categories = [
-    ...new Set(problems.map((problem) => problem.category))
+    ...new Set(
+      problems.map((problem) => problem.category.toLowerCase())
+    )
   ]
 
   const districts = [
-    ...new Set(problems.map((problem) => problem.district))
+    ...new Set(
+      problems.map((problem) => problem.district.toLowerCase())
+    )
   ]
 
   const filteredProblems = problems.filter((problem) => {
@@ -40,10 +50,12 @@ function Problems() {
       problem.location.toLowerCase().includes(searchText)
 
     const matchesCategory =
-      category === "" || problem.category === category
+      category === "" ||
+      problem.category.toLowerCase() === category
 
     const matchesDistrict =
-      district === "" || problem.district === district
+      district === "" ||
+      problem.district.toLowerCase() === district
 
     return matchesSearch && matchesCategory && matchesDistrict
   })
@@ -73,7 +85,7 @@ function Problems() {
 
             {categories.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {formatOption(item)}
               </option>
             ))}
           </select>
@@ -86,7 +98,7 @@ function Problems() {
 
             {districts.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {formatOption(item)}
               </option>
             ))}
           </select>

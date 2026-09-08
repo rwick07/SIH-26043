@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Navbar from "../components/Navbar"
 
 function ReportProblem() {
@@ -10,45 +11,63 @@ function ReportProblem() {
   const [message, setMessage] = useState("")
   const [file, setFile] = useState(null)
 
+  const navigate = useNavigate()
+
+  useEffect(() => {
+      const token = localStorage.getItem("token")
+      const storedUser = localStorage.getItem("user")
+
+      if (!token || !storedUser) {
+          navigate("/login")
+          return
+      }
+
+      const currentUser = JSON.parse(storedUser)
+
+      if (currentUser.role !== "Citizen") {
+          navigate("/dashboard")
+      }
+  }, [navigate])
+
   async function handleSubmit(event) {
-  event.preventDefault()
+    event.preventDefault()
 
-  const formData = new FormData()
+    const formData = new FormData()
 
-  formData.append("title", title)
-  formData.append("description", description)
-  formData.append("category", category)
-  formData.append("district", district)
-  formData.append("location", location)
+    formData.append("title", title)
+    formData.append("description", description)
+    formData.append("category", category)
+    formData.append("district", district)
+    formData.append("location", location)
 
-  if (file) {
-    formData.append("file", file)
-  }
-
-  try {
-    const response = await fetch("http://127.0.0.1:8000/problems", {
-      method: "POST",
-      headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`
-      },
-      body: formData
-    })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      setMessage(
-        `Problem submitted successfully! ID: ${data.problem_id}`
-      )
-    } else {
-      setMessage("Failed to submit problem.")
+    if (file) {
+      formData.append("file", file)
     }
 
-  } catch (error) {
-    console.error(error)
-    setMessage("Could not connect to the server.")
+    try {
+      const response = await fetch("http://127.0.0.1:8000/problems", {
+        method: "POST",
+        headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage(
+          `Problem submitted successfully! ID: ${data.problem_id}`
+        )
+      } else {
+        setMessage("Failed to submit problem.")
+      }
+
+    } catch (error) {
+      console.error(error)
+      setMessage("Could not connect to the server.")
+    }
   }
-}
 
   return (
     <div>

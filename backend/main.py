@@ -98,6 +98,19 @@ def get_current_university(
 
     return current_user
 
+def get_current_citizen(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Citizen":
+        raise HTTPException(
+            status_code=403,
+            detail="Citizen access required"
+        )
+
+    return current_user
+
+
+
 @app.get("/")
 def home():
     return {
@@ -205,8 +218,8 @@ async def create_problem(
     district: str = Form(...),
     location: str = Form(...),
     file: UploadFile | None = File(None),
-    current_user: User = Depends(get_current_user)
-):
+    current_user: User = Depends(get_current_citizen)
+    ):
 
     db = SessionLocal()
 

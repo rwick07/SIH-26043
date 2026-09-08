@@ -75,7 +75,20 @@ function Dashboard() {
 
             setProjectProblem(null)
             setProjectTitle("")
-            setProjectDescription("")   
+            setProjectDescription("")
+
+            setProjects((currentProjects) => [  
+                ...currentProjects,
+                {
+                    id: data.project_id,
+                    problem_id: data.problem_id,
+                    university_id: data.university_id,
+                    title: data.title,
+                    description: data.description,
+                    status: data.status,
+                    progress: 0
+                }
+            ])   
 
         } catch (error) {
             console.error(error)
@@ -223,6 +236,10 @@ function Dashboard() {
     (problem) => problem.status === "In Progress"
     ).length
 
+    const acceptedProblems = problems.filter(
+    (problem) => problem.status === "Accepted"
+    ).length
+
     const resolvedProblems = problems.filter(
     (problem) => problem.status === "Resolved"
     ).length
@@ -263,7 +280,9 @@ function Dashboard() {
                 <h3>
                 <span
                     onClick={() =>
-                    navigate(`/problems/${problem.id}`)
+                        navigate(`/problems/${problem.id}`, {
+                            state: { from: "dashboard" }
+                        })
                     }
                     className="problem-title-link"
                 >
@@ -350,10 +369,6 @@ function Dashboard() {
                                             setProjectProblem(null)
                                             setProjectTitle("")
                                             setProjectDescription("")
-                                            setProjects((currentProjects) => [
-                                                ...currentProjects,
-                                                data
-                                            ])
                                         }}
                                     >
                                         Cancel
@@ -406,6 +421,11 @@ function Dashboard() {
                 <div className="stat-card">
                 <h3>Submitted</h3>
                 <p>{submittedProblems}</p>
+                </div>
+
+                <div className="stat-card">
+                    <h3>Accepted</h3>
+                    <p>{acceptedProblems}</p>
                 </div>
 
                 <div className="stat-card">

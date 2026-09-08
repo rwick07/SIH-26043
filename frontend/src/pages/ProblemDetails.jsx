@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useLocation } from "react-router-dom"
 import Navbar from "../components/Navbar"
 
 function ProblemDetails() {
   const { id } = useParams()
 
+  const location = useLocation()
   const [problem, setProblem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -85,8 +86,13 @@ function ProblemDetails() {
 
       <main className="problem-details-page">
 
-        <Link to="/problems">
-          ← Back to Problems
+        <Link
+            to={
+                location.state?.from === "dashboard"
+                    ? "/dashboard"
+                    : "/problems"
+            }>
+            ← Back
         </Link>
 
         <h1>{problem.title}</h1>

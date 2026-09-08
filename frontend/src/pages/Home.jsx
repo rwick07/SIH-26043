@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 
 function Home() {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div>
@@ -19,9 +20,11 @@ function Home() {
           </p>
 
           <div className="hero-buttons">
-            <button onClick={() => navigate("/report")}>
-              Report a Problem
-            </button>
+            {user?.role === "Citizen" && (
+              <button onClick={() => navigate("/report")}>
+                Report a Problem
+              </button>
+            )}
 
             <button onClick={() => navigate("/problems")}>
               Explore Problems
