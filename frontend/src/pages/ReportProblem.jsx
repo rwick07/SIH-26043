@@ -10,6 +10,7 @@ function ReportProblem() {
   const [location, setLocation] = useState("")
   const [message, setMessage] = useState("")
   const [file, setFile] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const navigate = useNavigate()
 
@@ -31,6 +32,8 @@ function ReportProblem() {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    setIsSubmitting(true)
+    setMessage("")
 
     const formData = new FormData()
 
@@ -56,16 +59,27 @@ function ReportProblem() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage(
-          `Problem submitted successfully! ID: ${data.problem_id}`
-        )
+          setMessage(`Problem submitted successfully! ID: ${data.problem_id}`)
+
+          setTitle("")
+          setDescription("")
+          setCategory("")
+          setDistrict("")
+          setLocation("")
+          setFile(null)
+
+          setTimeout(() => {
+              navigate("/dashboard")
+          }, 1200)
       } else {
-        setMessage("Failed to submit problem.")
+          setMessage("Failed to submit problem.")
+          setIsSubmitting(false)
       }
 
     } catch (error) {
       console.error(error)
       setMessage("Could not connect to the server.")
+      setIsSubmitting(false)
     }
   }
 
@@ -129,12 +143,12 @@ function ReportProblem() {
               onChange={(event) => setDistrict(event.target.value)}
             >
               <option value="">Select district</option>
-              <option value="ranchi">Ranchi</option>
-              <option value="jamshedpur">East Singhbhum</option>
-              <option value="dhanbad">Dhanbad</option>
-              <option value="bokaro">Bokaro</option>
-              <option value="deoghar">Deoghar</option>
-              <option value="hazaribagh">Hazaribagh</option>
+              <option value="Ranchi">Ranchi</option>
+              <option value="East Singhbhum">East Singhbhum</option>
+              <option value="Dhanbad">Dhanbad</option>
+              <option value="Bokaro">Bokaro</option>
+              <option value="Deoghar">Deoghar</option>
+              <option value="Hazaribagh">Hazaribagh</option>
             </select>
           </label>
 
@@ -157,8 +171,8 @@ function ReportProblem() {
             />
           </label>
 
-          <button type="submit">
-            Submit Problem
+          <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Analyzing your problem with AI..." : "Submit Problem"}
           </button>
 
           {message && <p>{message}</p>}

@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey , Boolean
 from sqlalchemy.sql import func
 
 from database import Base
@@ -65,6 +65,11 @@ class Project(Base):
 
     status = Column(String(50), default="Proposed")
     progress = Column(Integer, default=0)
+
+    proposal_completed = Column(Boolean, default=False)
+    prototype_completed = Column(Boolean, default=False)
+    testing_completed = Column(Boolean, default=False)
+    implementation_completed = Column(Boolean, default=False)
 
     created_at = Column(
         DateTime(timezone=True),

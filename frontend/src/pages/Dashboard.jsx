@@ -10,6 +10,7 @@ function Dashboard() {
     const [loadingProblems, setLoadingProblems] = useState(true)
     const [search, setSearch] = useState("")
     const [statusFilter, setStatusFilter] = useState("All")
+    const [projectSearch, setProjectSearch] = useState("")
     const [projectProblem, setProjectProblem] = useState(null)
     const [projectTitle, setProjectTitle] = useState("")
     const [projectDescription, setProjectDescription] = useState("")
@@ -17,6 +18,42 @@ function Dashboard() {
     const [progressProject, setProgressProject] = useState(null)
     const [newProjectProgress, setNewProjectProgress] = useState("")
     const [newProjectStatus, setNewProjectStatus] = useState("")
+    const [milestoneMessage, setMilestoneMessage] = useState("")
+
+    const updateProblemStatus = async (problemId, status) => {
+        try {
+            const response = await fetch(
+                `http://127.0.0.1:8000/problems/${problemId}/status?status=${encodeURIComponent(status)}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.detail || "Could not update problem status")
+            }
+
+            setProblems((currentProblems) =>
+                currentProblems.map((problem) =>
+                    problem.id === problemId
+                        ? {
+                            ...problem,
+                            status: data.status
+                        }
+                        : problem
+                )
+            )
+
+        } catch (error) {
+            console.error(error)
+            alert(error.message)
+        }
+    }
 
     const takeUpProblem = async (problemId) => {
         try {
@@ -138,6 +175,49 @@ function Dashboard() {
         }
     }
 
+    const updateProjectMilestone = async (projectId, milestone, completed) => {
+        try {
+            const response = await fetch(
+                `http://127.0.0.1:8000/projects/${projectId}/milestone?milestone=${milestone}&completed=${completed}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "Could not update milestone"
+                )
+            }
+
+            setProjects((currentProjects) =>
+                currentProjects.map((project) =>
+                    project.id === projectId
+                        ? {
+                            ...project,
+                            [`${milestone}_completed`]: completed
+                        }
+                        : project
+                )
+            )
+
+            setMilestoneMessage("Milestone updated successfully.")
+
+            setTimeout(() => {
+                setMilestoneMessage("")
+            }, 2000)
+
+        } catch (error) {
+            console.error(error)
+            alert(error.message)
+        }
+    }
+
     useEffect(() => {
     const storedUser = localStorage.getItem("user")
     const token = localStorage.getItem("token")
@@ -229,20 +309,44 @@ function Dashboard() {
     const totalProblems = problems.length
 
     const submittedProblems = problems.filter(
-    (problem) => problem.status === "Submitted"
+        (problem) => problem.status === "Submitted"
     ).length
 
     const inProgressProblems = problems.filter(
-    (problem) => problem.status === "In Progress"
+        (problem) => problem.status === "In Progress"
     ).length
 
     const acceptedProblems = problems.filter(
-    (problem) => problem.status === "Accepted"
+        (problem) => problem.status === "Accepted"
     ).length
 
     const resolvedProblems = problems.filter(
-    (problem) => problem.status === "Resolved"
+        (problem) => problem.status === "Resolved"
     ).length
+
+    const criticalProblems = problems.filter(
+        (problem) => problem.ai_priority === "critical"
+    ).length
+
+    const highPriorityProblems = problems.filter(
+        (problem) => problem.ai_priority === "high"
+    ).length
+
+    const mediumPriorityProblems = problems.filter(
+        (problem) => problem.ai_priority === "medium"
+    ).length
+
+    const lowPriorityProblems = problems.filter(
+        (problem) => problem.ai_priority === "low"
+    ).length
+
+    const categoryCounts = problems.reduce((counts, problem) => {
+        const category = problem.ai_category || "Unanalyzed"
+
+        counts[category] = (counts[category] || 0) + 1
+
+        return counts
+    }, {})
 
     const filteredProblems = problems.filter((problem) => {
     const matchesSearch =
@@ -254,6 +358,17 @@ function Dashboard() {
         problem.status === statusFilter
 
     return matchesSearch && matchesStatus
+    })
+
+    const filteredProjects = projects.filter((project) => {
+        const searchText = projectSearch.toLowerCase()
+
+        return (
+            project.title?.toLowerCase().includes(searchText) ||
+            project.problem_title?.toLowerCase().includes(searchText) ||
+            project.university_name?.toLowerCase().includes(searchText) ||
+            project.status?.toLowerCase().includes(searchText)
+        )
     })
 
     const problemList = (
@@ -290,20 +405,58 @@ function Dashboard() {
                 </span>
                 </h3>
 
-                <p>
-                <strong>Category:</strong>{" "}
-                {problem.category}
-                </p>
+                <p><strong>Category:</strong>{" "}{problem.category}</p>
+                <p><strong>District:</strong>{" "}{problem.district}</p>
+                <p><strong>Status:</strong>{" "} {problem.status}</p>
 
-                <p>
-                <strong>District:</strong>{" "}
-                {problem.district}
-                </p>
+                {problem.ai_category && (
+                    <p>
+                        <strong>AI Category:</strong>{" "}
+                        {problem.ai_category.replace("_", " ")}
+                    </p>
+                )}
 
-                <p>
-                <strong>Status:</strong>{" "}
-                {problem.status}
-                </p>
+                {problem.ai_priority && (
+                    <p>
+                        <strong>AI Priority:</strong>{" "}
+                        <span className={`dashboard-ai-priority ${problem.ai_priority}`}>
+                            {problem.ai_priority.toUpperCase()}
+                        </span>
+                    </p>
+                )}
+
+                {problem.ai_summary && (
+                    <div className="dashboard-ai-summary">
+                        <strong>AI Summary:</strong>
+                        <p>{problem.ai_summary}</p>
+                    </div>
+                )}
+
+                {user.role === "Government" && (
+                    <div className="problem-actions">
+
+                        {problem.status === "Submitted" && (
+                            <button
+                                onClick={() =>
+                                    updateProblemStatus(problem.id, "Under Review")
+                                }
+                            >
+                                Review Problem
+                            </button>
+                        )}
+
+                        {problem.status === "Under Review" && (
+                            <button
+                                onClick={() =>
+                                    updateProblemStatus(problem.id, "Accepted")
+                                }
+                            >
+                                Accept Problem
+                            </button>
+                        )}
+
+                    </div>
+                )}
 
                 {user.role === "University" && (
                     problem.university_id === null ? (
@@ -442,6 +595,102 @@ function Dashboard() {
             )}
 
         {user.role === "Government" && (
+            <div className="ai-dashboard-overview">
+
+                <div className="ai-overview-header">
+                    <div>
+                        <h2>AI-Powered Problem Insights</h2>
+                        <p>
+                            AI-generated prioritization and categorization
+                            of reported community problems.
+                        </p>
+                    </div>
+
+                    <span className="ai-dashboard-badge">
+                        AI Powered
+                    </span>
+                </div>
+
+                <div className="ai-priority-grid">
+
+                    <div className="ai-priority-card critical">
+                        <span>Critical</span>
+                        <strong>{criticalProblems}</strong>
+                        <small>Immediate attention</small>
+                    </div>
+
+                    <div className="ai-priority-card high">
+                        <span>High</span>
+                        <strong>{highPriorityProblems}</strong>
+                        <small>High priority</small>
+                    </div>
+
+                    <div className="ai-priority-card medium">
+                        <span>Medium</span>
+                        <strong>{mediumPriorityProblems}</strong>
+                        <small>Moderate priority</small>
+                    </div>
+
+                    <div className="ai-priority-card low">
+                        <span>Low</span>
+                        <strong>{lowPriorityProblems}</strong>
+                        <small>Low priority</small>
+                    </div>
+
+                </div>
+
+                <div className="ai-category-section">
+
+                    <h3>Problems by AI Category</h3>
+
+                    <div className="ai-category-list">
+
+                        {Object.entries(categoryCounts).map(
+                            ([category, count]) => {
+
+                                const percentage =
+                                    totalProblems > 0
+                                        ? (count / totalProblems) * 100
+                                        : 0
+
+                                return (
+                                    <div
+                                        className="ai-category-row"
+                                        key={category}
+                                    >
+
+                                        <div className="ai-category-info">
+                                            <span>
+                                                {category.replace("_", " ")}
+                                            </span>
+
+                                            <strong>
+                                                {count}
+                                            </strong>
+                                        </div>
+
+                                        <div className="ai-category-bar">
+                                            <div
+                                                className="ai-category-fill"
+                                                style={{
+                                                    width: `${percentage}%`
+                                                }}
+                                            />
+                                        </div>
+
+                                    </div>
+                                )
+                            }
+                        )}
+
+                    </div>
+
+                </div>
+
+            </div>
+        )}    
+
+        {user.role === "Government" && (
             <div className="dashboard-filters">
 
                 <input
@@ -479,13 +728,26 @@ function Dashboard() {
 
         {user.role === "Government" && (
             <div className="dashboard-card">
-                <h2>Project Tracking</h2>
+                <h2 className="project-tracking-title">Project Tracking</h2>
+
+                {projects.length > 0 && (
+                    <div className="project-tracking-search">
+                        <input
+                            type="text"
+                            placeholder="Search projects..."
+                            value={projectSearch}
+                            onChange={(event) =>
+                                setProjectSearch(event.target.value)
+                            }
+                        />
+                    </div>
+                )}
 
                 {projects.length === 0 ? (
                     <p>No projects have been created yet.</p>
                 ) : (
                     <div className="my-problems-list">
-                        {projects.map((project) => (
+                        {filteredProjects.map((project) => (
                             <div
                                 className="my-problem-card"
                                 key={project.id}
@@ -520,6 +782,61 @@ function Dashboard() {
                                         }}
                                     />
                                 </div>
+
+                                <div className="project-lifecycle government-lifecycle">
+
+                                    <h4>Project Lifecycle</h4>
+
+                                    <div className="milestone-list">
+
+                                        <div className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.proposal_completed || false}
+                                                readOnly
+                                            />
+                                            <span>
+                                                Proposal
+                                            </span>
+                                        </div>
+
+                                        <div className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.prototype_completed || false}
+                                                readOnly
+                                            />
+                                            <span>
+                                                Prototype Development
+                                            </span>
+                                        </div>
+
+                                        <div className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.testing_completed || false}
+                                                readOnly
+                                            />
+                                            <span>
+                                                Field Testing
+                                            </span>
+                                        </div>
+
+                                        <div className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.implementation_completed || false}
+                                                readOnly
+                                            />
+                                            <span>
+                                                Implementation
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
                             </div>
                         ))}
                     </div>
@@ -565,6 +882,90 @@ function Dashboard() {
                                         }}
                                     >
                                     </div>
+                                </div>
+
+                                <div className="project-lifecycle">
+
+                                    <h4>Project Lifecycle</h4>
+
+                                    <div className="milestone-list">
+
+                                        <label className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.proposal_completed || false}
+                                                onChange={(event) =>
+                                                    updateProjectMilestone(
+                                                        project.id,
+                                                        "proposal",
+                                                        event.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                Proposal
+                                            </span>
+                                        </label>
+
+                                        <label className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.prototype_completed || false}
+                                                onChange={(event) =>
+                                                    updateProjectMilestone(
+                                                        project.id,
+                                                        "prototype",
+                                                        event.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                Prototype Development
+                                            </span>
+                                        </label>
+
+                                        <label className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.testing_completed || false}
+                                                onChange={(event) =>
+                                                    updateProjectMilestone(
+                                                        project.id,
+                                                        "testing",
+                                                        event.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                Field Testing
+                                            </span>
+                                        </label>
+
+                                        <label className="milestone-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={project.implementation_completed || false}
+                                                onChange={(event) =>
+                                                    updateProjectMilestone(
+                                                        project.id,
+                                                        "implementation",
+                                                        event.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                Implementation
+                                            </span>
+                                        </label>
+
+                                    </div>
+
+                                    {milestoneMessage && (
+                                        <p className="milestone-message">
+                                            {milestoneMessage}
+                                        </p>
+                                    )}
+
                                 </div>
 
                                 <button

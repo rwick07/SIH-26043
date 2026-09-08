@@ -37,7 +37,7 @@ def classify_problem(title: str, description: str) -> dict | None:
     """Returns a dict matching the schema above, or None if the call fails."""
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-3.5-flash-lite",
             contents=f"Title: {title}\n\nDescription: {description}",
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
@@ -98,7 +98,7 @@ Respond with ONLY JSON:
 }}"""
 
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-3.5-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction="You are a civic infrastructure problem-solving assistant. Be specific, not generic.",

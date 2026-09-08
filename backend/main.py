@@ -14,7 +14,7 @@ app = FastAPI()
 
 password_hash = PasswordHash.recommended()
 security = HTTPBearer()
-SECRET_KEY = "janSetu-secret-key-change-later"
+SECRET_KEY = "janSetu-secret-key-change-later-2026"
 ALGORITHM = "HS256"
 
 app.add_middleware(
@@ -219,8 +219,7 @@ async def create_problem(
     location: str = Form(...),
     file: UploadFile | None = File(None),
     current_user: User = Depends(get_current_citizen)
-    ):
-
+):
     db = SessionLocal()
 
     try:
@@ -234,6 +233,7 @@ async def create_problem(
 
             photo_path = file_path
 
+        # 1. Save the citizen's problem
         new_problem = ProblemModel(
             title=title,
             description=description,
@@ -248,10 +248,83 @@ async def create_problem(
         db.commit()
         db.refresh(new_problem)
 
+        # 2. Automatically analyze the problem using AI
+        result = classify_problem(
+            new_problem.title,
+            new_problem.description
+        )
+
+        if result:
+            new_problem.ai_category = result["category"]
+            new_problem.ai_priority = result["priority"]
+            new_problem.ai_summary = result["summary"]
+            new_problem.ai_keywords = ", ".join(result["keywords"])
+
+            # 3. Generate embedding and find similar problems
+            embedding = get_embedding(
+                f"{new_problem.title} {new_problem.description}"
+            )
+
+            similar = []
+
+            if embedding:
+                new_problem.embedding = embedding
+
+                rows = (
+                    db.query(ProblemModel)
+                    .filter(
+                        ProblemModel.ai_category == result["category"]
+                    )
+                    .filter(
+                        ProblemModel.id != new_problem.id
+                    )
+                    .filter(
+                        ProblemModel.embedding.isnot(None)
+                    )
+                    .order_by(
+                        ProblemModel.embedding.cosine_distance(embedding)
+                    )
+                    .limit(5)
+                    .all()
+                )
+
+                similar = [
+                    {
+                        "title": r.title,
+                        "description": r.description,
+                        "status": r.status
+                    }
+                    for r in rows
+                ]
+
+            # 4. Generate practical solution
+            solution = generate_solution(
+                {
+                    "title": new_problem.title,
+                    "description": new_problem.description,
+                    "category": result["category"]
+                },
+                similar
+            )
+
+            if solution:
+                new_problem.ai_solution = solution["solution"]
+                new_problem.ai_pattern_note = solution["pattern_note"]
+
+            # 5. Save AI results
+            db.commit()
+            db.refresh(new_problem)
+
         return {
-            "message": "Problem saved successfully",
+            "message": "Problem submitted and analyzed successfully",
             "problem_id": new_problem.id,
-            "photo": photo_path
+            "photo": photo_path,
+            "ai_category": new_problem.ai_category,
+            "ai_priority": new_problem.ai_priority,
+            "ai_summary": new_problem.ai_summary,
+            "ai_keywords": new_problem.ai_keywords,
+            "ai_solution": new_problem.ai_solution,
+            "ai_pattern_note": new_problem.ai_pattern_note
         }
 
     finally:
@@ -499,7 +572,12 @@ def get_government_projects(
                 "problem_id": project.problem_id,
                 "problem_title": problem.title if problem else "Unknown Problem",
                 "university_id": project.university_id,
-                "university_name": university.name if university else "Unknown University"
+                "university_name": university.name if university else "Unknown University",
+
+                "proposal_completed": project.proposal_completed,
+                "prototype_completed": project.prototype_completed,
+                "testing_completed": project.testing_completed,
+                "implementation_completed": project.implementation_completed
             })
 
         return result
@@ -556,6 +634,62 @@ def update_project_progress(
             "project_id": project.id,
             "status": project.status,
             "progress": project.progress
+        }
+
+    finally:
+        db.close()
+
+@app.put("/projects/{project_id}/milestone")
+def update_project_milestone(
+    project_id: int,
+    milestone: str,
+    completed: bool,
+    current_user: User = Depends(get_current_university)
+):
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).filter(
+            Project.id == project_id
+        ).first()
+
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found"
+            )
+
+        if project.university_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only update your own projects"
+            )
+
+        milestone_fields = {
+            "proposal": "proposal_completed",
+            "prototype": "prototype_completed",
+            "testing": "testing_completed",
+            "implementation": "implementation_completed"
+        }
+
+        if milestone not in milestone_fields:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid milestone"
+            )
+
+        field_name = milestone_fields[milestone]
+
+        setattr(project, field_name, completed)
+
+        db.commit()
+        db.refresh(project)
+
+        return {
+            "message": "Milestone updated successfully",
+            "project_id": project.id,
+            "milestone": milestone,
+            "completed": completed
         }
 
     finally:
