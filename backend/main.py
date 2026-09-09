@@ -5,16 +5,19 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from pwdlib import PasswordHash
 import jwt
+import os
+from dotenv import load_dotenv
 
 from database import engine, SessionLocal
 from models import Problem as ProblemModel, User, Project
 from ai_service import classify_problem, get_embedding, generate_solution
 
+load_dotenv()
 app = FastAPI()
 
 password_hash = PasswordHash.recommended()
 security = HTTPBearer()
-SECRET_KEY = "janSetu-secret-key-change-later-2026"
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
 app.add_middleware(
