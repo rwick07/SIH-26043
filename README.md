@@ -350,3 +350,19 @@ Future versions of JanSetu can include:
 - Mobile application
 - Advanced project collaboration
 - Impact and outcome measurement
+
+---
+
+## Team
+- Ritwik Chawda (Me)
+- Rudraksh Sivam Dutta
+- Rohith Jain
+- Likitha
+- Saksham
+- Vatsal
+  
+### Team JanSetu
+
+**Smart India Hackathon 2026**
+
+**Problem Statement:** SIH26043
