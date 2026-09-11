@@ -142,16 +142,6 @@ python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 
-Create a file named `.env` inside the `backend` folder:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key
-DATABASE_URL=your_postgresql_connection_string
-SECRET_KEY=your_jwt_secret
-```
-
-> Never commit the `.env` file or expose your API keys and passwords.
-
 Start the backend:
 
 ```bash
@@ -354,7 +344,7 @@ Future versions of JanSetu can include:
 ---
 
 ## Team
-- Ritwik Chawda (Me)
+- Ritwik Chawda - (Me) - [LinkedIn](https://www.linkedin.com/in/ritwik-chawda-a44718338/)
 - Rudraksh Sivam Dutta
 - Rohith Jain
 - Likitha
